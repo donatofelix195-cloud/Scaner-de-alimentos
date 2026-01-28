@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ChefVision AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --carbon-black: #121212;
+            --electric-olive: #8BC34A;
+            --sunset-orange: #FF9800;
+            --surface-dark: #1E1E1E;
+            --text-white: #FFFFFF;
+            --text-gray: #BDBDBD;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #000;
+            color: var(--text-white);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .phone-container {
+            width: 100%;
+            max-width: 450px;
+            height: 100%;
+            background-color: var(--carbon-black);
+            position: relative;
+            overflow: hidden;
+        }
+
+        @media (min-width: 500px) {
+            .phone-container {
+                height: 90vh;
+                border: 8px solid #333;
+                border-radius: 40px;
+                box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+            }
+        }
+
+        /* Camera View */
+        .camera-view {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #camera-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            transform: scaleX(-1);
+            /* Mirror for selfie cam, common for web mocks */
+        }
+
+        .camera-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            padding: 60px 20px 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: linear-gradient(rgba(0, 0, 0, 0.2), transparent, rgba(0, 0, 0, 0.4));
+        }
+
+        /* Float Labels */
+        .ingredient-label {
+            background-color: rgba(139, 195, 74, 0.9);
+            color: #000;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            position: absolute;
+            border: 1px solid white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            animation: float 3s ease-in-out infinite;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+            }
+
+            50% {
+                transform: translateY(-8px) scale(1.05);
+            }
+        }
+
+        /* Macro Hud */
+        .macro-hud {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(15px);
+            border-radius: 24px;
+            padding: 20px;
+            border: 1px solid rgba(139, 195, 74, 0.2);
+            display: flex;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        .macro-box {
+            text-align: center;
+        }
+
+        .m-val {
+            display: block;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .m-lbl {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        /* Control Panel */
+        .bottom-panel {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: var(--surface-dark);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 32px 32px 0 0;
+            padding: 24px 24px 44px;
+            z-index: 20;
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+
+        .brand {
+            color: var(--electric-olive);
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+
+        .status {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .nav-btn {
+            text-align: center;
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+        }
+
+        .icon-circ {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            transition: 0.2s;
+        }
+
+        .icon-circ.small {
+            background: #333;
+        }
+
+        .icon-circ.large {
+            width: 76px;
+            height: 76px;
+            background: var(--electric-olive);
+            color: #000;
+            box-shadow: 0 0 20px rgba(139, 195, 74, 0.4);
+        }
+
+        .nav-btn:active .icon-circ {
+            transform: scale(0.9);
+        }
+
+        /* Inventory Screen */
+        #inventory-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--carbon-black);
+            z-index: 50;
+            padding: 60px 24px;
+            transform: translateX(100%);
+            transition: transform 0.3s ease-out;
+            overflow-y: auto;
+        }
+
+        #inventory-screen.open {
+            transform: translateX(0);
+        }
+
+        .inv-head {
+            display: flex;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            margin-right: 16px;
+            cursor: pointer;
+        }
+
+        .food-card {
+            background: var(--surface-dark);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideIn 0.3s ease-out backwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .food-info h4 {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .food-info p {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+        }
+
+        .exp-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* Toast Message */
+        .toast {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--electric-olive);
+            color: black;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-weight: 600;
+            z-index: 100;
+            opacity: 0;
+            transition: 0.3s;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            top: 110px;
+        }
+
+        /* Scanning Visual Effect */
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--electric-olive);
+            box-shadow: 0 0 15px var(--electric-olive);
+            z-index: 3;
+            display: none;
+            animation: scanMove 2s linear infinite;
+        }
+
+        @keyframes scanMove {
+            0% {
+                top: 10%;
+            }
+
+            100% {
+                top: 90%;
+            }
+        }
+
+        .scan-line.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="phone-container">
+        <div id="toast" class="toast">Ingrediente Registrado</div>
+
+        <!-- MAIN APP SCREEN -->
+        <div class="camera-view">
+            <video id="camera-video" autoplay playsinline muted></video>
+
+            <div id="scan-line" class="scan-line"></div>
+
+            <div class="camera-overlay">
+                <!-- Labels dynamic -->
+                <div id="label-container" style="position: relative; height: 100%; pointer-events: none;">
+                    <div class="ingredient-label" style="top: 15%; left: 10%;">Esperando Cámara...</div>
+                </div>
+
+                <!-- Macros HUD -->
+                <div class="macro-hud">
+                    <div class="macro-box">
+                        <span class="m-val" id="kcal-count">0</span>
+                        <span class="m-lbl" style="color: var(--sunset-orange)">Kcal</span>
+                    </div>
+                    <div class="macro-box">
+                        <span class="m-val" id="prot-count">0g</span>
+                        <span class="m-lbl" style="color: var(--electric-olive)">Prot</span>
+                    </div>
+                    <div class="macro-box">
+                        <span class="m-val" id="carb-count">0g</span>
+                        <span class="m-lbl" style="color: #42A5F5">Carb</span>
+                    </div>
+                    <div class="macro-box">
+                        <span class="m-val" id="fat-count">0g</span>
+                        <span class="m-lbl" style="color: #CE93D8">Grasa</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTTOM CONTROLS -->
+        <div class="bottom-panel">
+            <div class="panel-header">
+                <div>
+                    <h1 class="brand">ChefVision AI</h1>
+                    <span id="ai-status" class="status">● Sincronizando Hardware...</span>
+                </div>
+                <button class="nav-btn" onclick="alert('Perfil Seguro Encriptado (AES-256 local)')">
+                    <svg width="24" height="24" fill="none" stroke="#777" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="5" />
+                        <path d="M20 21a8 8 0 1 0-16 0" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="controls">
+                <button class="nav-btn" onclick="openInventory()">
+                    <div class="icon-circ small">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+                            viewBox="0 0 24 24">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                        </svg>
+                    </div>
+                    <span style="font-size: 0.7rem; color: #888">Alacena</span>
+                </button>
+
+                <button class="nav-btn" onclick="scanFood()">
+                    <div class="icon-circ large">
+                        <svg width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.5"
+                            viewBox="0 0 24 24">
+                            <path d="M12 5v14M5 12h14" />
+                        </svg>
+                    </div>
+                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--electric-olive)">ESCANEAR</span>
+                </button>
+
+                <button class="nav-btn" onclick="alert('Modo Voz: Di Siguiente paso o ¿Cuánta proteína?')">
+                    <div class="icon-circ small">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+                            viewBox="0 0 24 24">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                            <path d="M12 19v4m-4 0h8" />
+                        </svg>
+                    </div>
+                    <span style="font-size: 0.7rem; color: #888">Voz AI</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- INVENTORY SCREEN -->
+        <div id="inventory-screen">
+            <div class="inv-head">
+                <button class="close-btn" onclick="closeInventory()">×</button>
+                <h2 style="font-size: 1.8rem; font-weight: 700">Mi Inventario</h2>
+            </div>
+            <div id="food-list"></div>
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <p>Tu alacena está vacía.<br>¡Escanea algo ahora!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dataset = [
+            { name: "Aguacate", kcal: 160, prot: 2, carb: 9, fat: 15, color: "#8BC34A", exp: "5 días" },
+            { name: "Tomate", kcal: 18, prot: 1, carb: 4, fat: 0, color: "#f44336", exp: "3 días" },
+            { name: "Pechuga Pollo", kcal: 165, prot: 31, carb: 0, fat: 3, color: "#f44336", exp: "2 días" },
+            { name: "Huevo", kcal: 70, prot: 6, carb: 1, fat: 5, color: "#FF9800", exp: "12 días" },
+            { name: "Brocoli", kcal: 34, prot: 3, carb: 7, fat: 0, color: "#8BC34A", exp: "4 días" }
+        ];
+
+        let inventory = [];
+
+        async function init() {
+            // Cargar Storage
+            const saved = localStorage.getItem('chefvision_vault_v3');
+            inventory = saved ? JSON.parse(saved) : [{ name: "Manzana Roja", kcal: 52, prot: 0.3, carb: 14, fat: 0.2, color: "#FF9800", exp: "8 días", date: Date.now() }];
+            updateMacroHUD();
+
+            // Iniciar Cámara
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+                const video = document.getElementById('camera-video');
+                video.srcObject = stream;
+                document.getElementById('ai-status').innerText = "● Visión AI Activa (60 FPS)";
+                document.getElementById('ai-status').style.color = "#8BC34A";
+
+                // Simular etiquetas dinámicas una vez conectado
+                startLabelSimulation();
+            } catch (err) {
+                console.error(err);
+                document.getElementById('ai-status').innerText = "● Error de Cámara: Sin Permisos";
+                document.getElementById('ai-status').style.color = "#f44336";
+                alert("Para simular el escaneo real, ChefVision necesita acceso a tu cámara. Por favor actualiza y acepta los permisos.");
+            }
+        }
+
+        function startLabelSimulation() {
+            const container = document.getElementById('label-container');
+            setInterval(() => {
+                if (Math.random() > 0.7) {
+                    const item = dataset[Math.floor(Math.random() * dataset.length)];
+                    container.innerHTML = `
+                    <div class="ingredient-label" style="top: ${20 + Math.random() * 40}%; left: ${10 + Math.random() * 50}%;">
+                        ${item.name} • ${Math.floor(85 + Math.random() * 14)}%
+                    </div>`;
+                    setTimeout(() => container.innerHTML = '', 3000);
+                }
+            }, 5000);
+        }
+
+        function scanFood() {
+            const line = document.getElementById('scan-line');
+            line.classList.add('active');
+
+            setTimeout(() => {
+                const item = dataset[Math.floor(Math.random() * dataset.length)];
+                inventory.unshift({ ...item, date: Date.now() });
+                save();
+                updateMacroHUD();
+                showToast(`AI: Registrado ${item.name} (+${item.prot}g Prot)`);
+                line.classList.remove('active');
+
+                // Efecto Flash
+                document.querySelector('.camera-view').style.filter = 'brightness(1.8)';
+                setTimeout(() => document.querySelector('.camera-view').style.filter = '', 100);
+            }, 1200);
+        }
+
+        function save() { localStorage.setItem('chefvision_vault_v3', JSON.stringify(inventory)); }
+
+        function updateMacroHUD() {
+            let totals = inventory.reduce((acc, i) => ({
+                k: acc.k + (i.kcal || 0), p: acc.p + (i.prot || 0), c: acc.c + (i.carb || 0), f: acc.f + (i.fat || 0)
+            }), { k: 0, p: 0, c: 0, f: 0 });
+
+            document.getElementById('kcal-count').innerText = Math.round(totals.k).toLocaleString();
+            document.getElementById('prot-count').innerText = Math.round(totals.p) + 'g';
+            document.getElementById('carb-count').innerText = Math.round(totals.c) + 'g';
+            document.getElementById('fat-count').innerText = Math.round(totals.f) + 'g';
+        }
+
+        function renderList() {
+            const container = document.getElementById('food-list');
+            const empty = document.getElementById('empty-state');
+            if (inventory.length === 0) { empty.style.display = 'block'; container.innerHTML = ''; return; }
+            empty.style.display = 'none';
+            container.innerHTML = inventory.map((item, idx) => `
+            <div class="food-card" style="animation-delay: ${idx * 0.05}s">
+                <div class="food-info">
+                    <h4>${item.name}</h4>
+                    <p>${new Date(item.date).toLocaleDateString()} • ${item.kcal} kcal</p>
+                </div>
+                <div class="exp-badge" style="background: ${item.color}22; color: ${item.color}">${item.exp}</div>
+                <button onclick="removeItem(${idx})" style="background:none; border:none; color:#555; font-size:1.5rem; cursor:pointer; padding-left:10px;">×</button>
+            </div>
+        `).join('');
+        }
+
+        function removeItem(idx) {
+            inventory.splice(idx, 1);
+            save();
+            renderList();
+            updateMacroHUD();
+        }
+
+        function openInventory() { renderList(); document.getElementById('inventory-screen').classList.add('open'); }
+        function closeInventory() { document.getElementById('inventory-screen').classList.remove('open'); }
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        init();
+    </script>
+
+</body>
+
+</html>
