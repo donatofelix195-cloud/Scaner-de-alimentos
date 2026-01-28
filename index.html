@@ -70,8 +70,6 @@
             height: 100%;
             object-fit: cover;
             z-index: 1;
-            transform: scaleX(-1);
-            /* Mirror for selfie cam, common for web mocks */
         }
 
         .camera-overlay {
@@ -530,24 +528,28 @@
 
         function startLabelSimulation() {
             const container = document.getElementById('label-container');
+            const status = document.getElementById('ai-status');
+
             setInterval(() => {
-                const item = dataset[Math.floor(Math.random() * dataset.length)];
-                currentDetectedItem = item; // "Lock" the item for the scan
-
-                container.innerHTML = `
-                    <div class="ingredient-label" style="top: ${25 + Math.random() * 30}%; left: ${15 + Math.random() * 40}%;">
-                        ${item.name} • ${Math.floor(92 + Math.random() * 7)}%
-                    </div>`;
-
-                // Extra distractor labels for "AI feel"
+                // 50% chance of detecting something vs just scanning
                 if (Math.random() > 0.5) {
-                    const other = dataset[Math.floor(Math.random() * dataset.length)];
-                    container.innerHTML += `
-                        <div class="ingredient-label" style="top: ${50 + Math.random() * 20}%; right: 10%; background: var(--sunset-orange); opacity: 0.6;">
-                            ${other.name} • ${Math.floor(60 + Math.random() * 20)}%
+                    const item = dataset[Math.floor(Math.random() * dataset.length)];
+                    currentDetectedItem = item;
+
+                    status.innerText = `● AI: ${item.name} Detectado`;
+                    status.style.color = "var(--electric-olive)";
+
+                    container.innerHTML = `
+                        <div class="ingredient-label" style="top: ${30 + Math.random() * 20}%; left: ${20 + Math.random() * 30}%;">
+                            ${item.name} • ${Math.floor(94 + Math.random() * 5)}%
                         </div>`;
+                } else {
+                    currentDetectedItem = null;
+                    status.innerText = "● AI: Analizando entorno...";
+                    status.style.color = "var(--text-gray)";
+                    container.innerHTML = '';
                 }
-            }, 3000);
+            }, 3500);
         }
 
         function scanFood() {
@@ -555,17 +557,26 @@
             line.classList.add('active');
 
             setTimeout(() => {
-                // Use what we see on screen, or fallback to random if timing is off
-                const item = currentDetectedItem || dataset[Math.floor(Math.random() * dataset.length)];
-
-                inventory.unshift({ ...item, date: Date.now() });
-                save();
-                updateMacroHUD();
-                showToast(`AI: Confirmado ${item.name} (+${item.prot}g Proteína)`);
                 line.classList.remove('active');
 
-                document.querySelector('.camera-view').style.filter = 'brightness(1.8)';
-                setTimeout(() => document.querySelector('.camera-view').style.filter = '', 100);
+                if (currentDetectedItem) {
+                    const item = currentDetectedItem;
+                    inventory.unshift({ ...item, date: Date.now() });
+                    save();
+                    updateMacroHUD();
+                    showToast(`ÉXITO: ${item.name} registrado.`);
+
+                    // Efecto Flash Verde
+                    document.querySelector('.camera-view').style.boxShadow = "inset 0 0 100px var(--electric-olive)";
+                    setTimeout(() => document.querySelector('.camera-view').style.boxShadow = '', 200);
+                } else {
+                    // Si no hay item detectado (pared, suelo, etc.)
+                    showToast("ERROR: No se detectó ningún alimento.");
+
+                    // Efecto Flash Rojo
+                    document.querySelector('.camera-view').style.boxShadow = "inset 0 0 100px #f44336";
+                    setTimeout(() => document.querySelector('.camera-view').style.boxShadow = '', 200);
+                }
             }, 1000);
         }
 
